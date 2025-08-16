@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import HelloWorld from "./components/HelloWorld.vue";
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 
 const screenSources = ref([]);
 const windowSources = ref([]);
+const currentSources = computed(() => {
+  return tabactive.value === 'window' ? windowSources.value : screenSources.value;
+});
+const selectedSource = ref<any>(null);
+const isSharingAudio = ref(false);
 const getDisplayMedia = () => {
   const main = window.ipcRenderer;
   return new Promise(async (resolve, reject) => {
@@ -42,23 +47,40 @@ const tablist = ref([
 const tabChange = (key: string | number) => {
   tabactive.value = key as string;
 };
-const sharedClick = async (id) => {
+const selectSource = (source: any) => {
+  selectedSource.value = source;
+};
+
+const startSharing = async () => {
+  if (!selectedSource.value) {
+    return;
+  }
+  
   sharescreenVisible.value = false;
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: false, // 你可以根据需求选择是否捕获音频
-    video: {
-      mandatory: {
-        chromeMediaSource: "desktop", // 必须是 desktop
-        chromeMediaSourceId: id, // 传入你选中的 id
-        maxWidth: 1920, // 最大宽高，按需设置
-        maxHeight: 1080,
-        maxFrameRate: 30,
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: isSharingAudio.value && tabactive.value === 'screen', // 只有屏幕共享时才支持音频
+      video: {
+        mandatory: {
+          chromeMediaSource: "desktop",
+          chromeMediaSourceId: selectedSource.value.id,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          maxFrameRate: 30,
+        } as any,
       },
-    },
-  });
-  videoRef.value.srcObject = stream;
-  await videoRef.value.play();
-  console.log(stream);
+    });
+    videoRef.value.srcObject = stream;
+    await videoRef.value.play();
+    console.log('开始共享:', selectedSource.value.name, stream);
+  } catch (error) {
+    console.error('共享失败:', error);
+  }
+};
+
+const cancelSharing = () => {
+  sharescreenVisible.value = false;
+  selectedSource.value = null;
 };
 
 onMounted(() => {
@@ -68,6 +90,12 @@ onMounted(() => {
 
 <template>
   <a-button @click="handleClick">Open Modal</a-button>
+  
+  <!-- 预览区域 -->
+  <div v-if="selectedSource" class="preview-area">
+    <h3>预览: {{ selectedSource.name }}</h3>
+    <video ref="videoRef" autoplay muted class="preview-video"></video>
+  </div>
   <a-modal
     v-model:visible="sharescreenVisible"
     simple
@@ -92,38 +120,54 @@ onMounted(() => {
               width: 100%;
               height: 340px;
               overflow: auto;
-              display: flex;
-              gap: 16px;
-              flex-wrap: wrap;
-              justify-content: center;
             "
             type="track"
           >
-            <div
-              v-for="(item, index) in tabactive == 'window'
-                ? windowSources
-                : screenSources"
-              :key="item.id"
-              class="screen-item"
-            >
-              <img :src="item.thumbnailURL" class="screen-thumbnail" />
-              <div class="screen-label">
-                <span>{{ item.name }}</span>
+            <div class="screen-grid" :class="{ 'few-items': currentSources.length <= 2 }">
+              <div
+                v-for="(item, index) in currentSources"
+                :key="item.id"
+                class="screen-item"
+                :class="{ 'selected': selectedSource?.id === item.id }"
+                @click="selectSource(item)"
+              >
+                <img :src="item.thumbnailURL" class="screen-thumbnail" />
+                <div class="screen-label">
+                  <span>{{ item.name }}</span>
+                </div>
               </div>
             </div>
           </a-scrollbar>
         </div>
         <div class="screen-hint">
-          <span v-if="tabactive == 'window'">若要分享音频，请改为共享屏幕</span>
-          <span v-else>同时分享系统音频</span>
-          <a-switch v-if="tabactive == 'screen'" />
+          <div class="hint-text">
+            <span v-if="tabactive == 'window'">若要分享音频，请改为共享屏幕</span>
+            <span v-else>同时分享系统音频</span>
+          </div>
+          <a-switch 
+            v-if="tabactive == 'screen'" 
+            v-model:checked="isSharingAudio"
+            size="small"
+          />
         </div>
       </a-tab-pane>
     </a-tabs>
 
     <div class="modal-footer">
-      <a-button style="margin-right: 10px">取消</a-button>
-      <a-button type="primary">开始共享</a-button>
+      <a-button 
+        style="margin-right: 10px" 
+        @click="cancelSharing"
+        :disabled="!selectedSource"
+      >
+        取消
+      </a-button>
+      <a-button 
+        type="primary" 
+        @click="startSharing"
+        :disabled="!selectedSource"
+      >
+        开始共享
+      </a-button>
     </div>
   </a-modal>
 </template>
@@ -168,10 +212,44 @@ onMounted(() => {
     :deep(.arco-scrollbar) {
       width: 100%;
       margin: 10px 0;
+      
+      // 隐藏滚动条
+      .arco-scrollbar-track {
+        display: none;
+      }
+      
+      .arco-scrollbar-thumb {
+        display: none;
+      }
+    }
+
+    .screen-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 16px;
+      padding: 10px;
+      width: 100%;
+      max-width: 100%;
+      
+      &.few-items {
+        max-width: 500px;
+        margin: 0 auto;
+        justify-content: center;
+        gap: 24px;
+        
+        .screen-item {
+          width: 220px !important;
+          height: 180px !important;
+          
+          .screen-thumbnail {
+            height: 140px !important;
+          }
+        }
+      }
     }
 
     .screen-item {
-      width: 175px;
+      width: 100%;
       height: 150px;
       border: 2px solid transparent;
       border-radius: 8px;
@@ -180,7 +258,9 @@ onMounted(() => {
       text-align: center;
       transition: border-color 0.3s;
       .screen-thumbnail {
+        width: 100%;
         height: 110px;
+        object-fit: cover;
       }
       .screen-label {
         width: 100%;
@@ -201,10 +281,13 @@ onMounted(() => {
         border-color: #409eff;
       }
 
-      .screen-item .selected {
-        border-color: #165dff;
+      &.selected {
+        border-color: #165dff !important;
+        box-shadow: 0 0 0 2px rgba(22, 93, 255, 0.2);
       }
     }
+
+
   }
   .screen-hint {
     width: calc(100% - 30px);
@@ -214,11 +297,47 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    
+    .hint-text {
+      color: #666;
+      font-size: 13px;
+    }
   }
 
   .modal-footer {
     text-align: right;
     padding-top: 16px;
+    
+    .arco-btn {
+      min-width: 80px;
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.preview-area {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  background: #f7f8fa;
+  
+  h3 {
+    margin: 0 0 10px 0;
+    color: #1d2129;
+    font-size: 16px;
+  }
+  
+  .preview-video {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    border-radius: 4px;
+    background: #000;
   }
 }
 </style>
