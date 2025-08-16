@@ -101,7 +101,7 @@ onMounted(() => {
     simple
     hide-title
     title="选择要共享的屏幕或窗口"
-    width="610px"
+          width="680px"
     :footer="false"
     body-class="screenModal"
     :modal-style="{
@@ -118,7 +118,7 @@ onMounted(() => {
           <a-scrollbar
             style="
               width: 100%;
-              height: 340px;
+              height: 400px;
               overflow: auto;
             "
             type="track"
@@ -206,7 +206,7 @@ onMounted(() => {
   }
   .screen-list {
     width: calc(100% - 30px);
-    height: 340px;
+    height: 400px;
     margin: 0 auto;
 
     :deep(.arco-scrollbar) {
@@ -225,24 +225,37 @@ onMounted(() => {
 
     .screen-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
       padding: 10px;
       width: 100%;
       max-width: 100%;
       
       &.few-items {
-        max-width: 500px;
+        max-width: 580px;
         margin: 0 auto;
         justify-content: center;
-        gap: 24px;
+        gap: 28px;
         
         .screen-item {
-          width: 220px !important;
-          height: 180px !important;
+          width: 250px !important;
+          max-width: 250px !important; // 覆盖普通状态的最大宽度限制
+          height: 200px !important;
           
           .screen-thumbnail {
-            height: 140px !important;
+            height: 160px !important;
+            object-fit: contain !important;
+            background: transparent !important;
+          }
+          
+          .screen-label {
+            height: 40px !important;
+            padding: 4px 0 12px 0 !important;
+            
+            span {
+              font-size: 14px !important;
+              line-height: 1.2 !important;
+            }
           }
         }
       }
@@ -250,6 +263,8 @@ onMounted(() => {
 
     .screen-item {
       width: 100%;
+      min-width: 0; // 允许项目收缩
+      max-width: 180px; // 限制最大宽度，确保3列布局
       height: 150px;
       border: 2px solid transparent;
       border-radius: 8px;
@@ -260,7 +275,8 @@ onMounted(() => {
       .screen-thumbnail {
         width: 100%;
         height: 110px;
-        object-fit: cover;
+        object-fit: contain;
+        background: transparent;
       }
       .screen-label {
         width: 100%;
