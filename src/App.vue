@@ -97,6 +97,7 @@ onMounted(() => {
               flex-wrap: wrap;
               justify-content: center;
             "
+            type="track"
           >
             <div
               v-for="(item, index) in tabactive == 'window'
@@ -106,18 +107,22 @@ onMounted(() => {
               class="screen-item"
             >
               <img :src="item.thumbnailURL" class="screen-thumbnail" />
-              <div class="screen-label">{{ item.name }}</div>
+              <div class="screen-label">
+                <span>{{ item.name }}</span>
+              </div>
             </div>
           </a-scrollbar>
         </div>
         <div class="screen-hint">
-          <span>若要分享音频，请改为共享屏幕</span>
+          <span v-if="tabactive == 'window'">若要分享音频，请改为共享屏幕</span>
+          <span v-else>同时分享系统音频</span>
+          <a-switch v-if="tabactive == 'screen'" />
         </div>
       </a-tab-pane>
     </a-tabs>
 
     <div class="modal-footer">
-      <a-button>取消</a-button>
+      <a-button style="margin-right: 10px">取消</a-button>
       <a-button type="primary">开始共享</a-button>
     </div>
   </a-modal>
@@ -134,12 +139,20 @@ onMounted(() => {
           width: 100%;
           display: flex;
           justify-content: space-between;
+
           .arco-tabs-tab {
             width: 50%;
             justify-content: center;
+            margin: 0;
           }
         }
       }
+    }
+    :deep(.arco-tabs-nav-type-line .arco-tabs-tab) {
+      margin: 0;
+    }
+    :deep(.arco-tabs-nav-type-line .arco-tabs-tab) {
+      margin: 0;
     }
     :deep(.arco-tabs-content) {
       padding-top: 0;
@@ -154,29 +167,43 @@ onMounted(() => {
 
     :deep(.arco-scrollbar) {
       width: 100%;
+      margin: 10px 0;
     }
 
     .screen-item {
-      width: 180px;
-      height: 170px;
+      width: 175px;
+      height: 150px;
       border: 2px solid transparent;
       border-radius: 8px;
       overflow: hidden;
       cursor: pointer;
       text-align: center;
       transition: border-color 0.3s;
-      .screen-label {
-        font-size: 14px;
-        overflow: hidden;
+      .screen-thumbnail {
+        height: 110px;
       }
-    }
+      .screen-label {
+        width: 100%;
+        height: 40px;
+        // background: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        span {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 13px;
+          padding: 0 10px;
+        }
+      }
+      &:hover {
+        border-color: #409eff;
+      }
 
-    .screen-item:hover {
-      border-color: #409eff;
-    }
-
-    .screen-item .selected {
-      border-color: #165dff;
+      .screen-item .selected {
+        border-color: #165dff;
+      }
     }
   }
   .screen-hint {
@@ -187,12 +214,6 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
-
-  .screen-thumbnail {
-    width: 100%;
-    // height: 150px;
-    object-fit: cover;
   }
 
   .modal-footer {

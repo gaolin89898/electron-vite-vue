@@ -11,6 +11,7 @@ declare module 'vue' {
     AButton: typeof import('@arco-design/web-vue')['Button']
     AModal: typeof import('@arco-design/web-vue')['Modal']
     AScrollbar: typeof import('@arco-design/web-vue')['Scrollbar']
+    ASwitch: typeof import('@arco-design/web-vue')['Switch']
     ATabPane: typeof import('@arco-design/web-vue')['TabPane']
     ATabs: typeof import('@arco-design/web-vue')['Tabs']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
